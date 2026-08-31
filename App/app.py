@@ -6,10 +6,24 @@ import seaborn as sns
 import joblib
 import os
 import math
+from pathlib import Path
+
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import (silhouette_score,davies_bouldin_score,calinski_harabasz_score)
+from sklearn.metrics import (
+    silhouette_score,
+    davies_bouldin_score,
+    calinski_harabasz_score
+)
 from sklearn.decomposition import PCA
+
+# Project directories
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BASE_DIR.parent
+
+DATA_PATH = PROJECT_DIR / "Dataset" / "CreditCard_data.csv"
+MODEL_PATH = PROJECT_DIR / "Models" / "kmeans_model.pkl"
+SCALER_PATH = PROJECT_DIR / "Models" / "scaler.pkl"
 st.set_page_config(
     page_title="Credit Card Customer Segmentation",
     page_icon="💳",
@@ -17,8 +31,9 @@ st.set_page_config(
 )
 @st.cache_data
 def load_data():
-    df = pd.read_csv("C:\\Users\\rahul\\INTERNSHIP\\DATASETS\\CreditCard_data.csv")
+    df = pd.read_csv(DATA_PATH)
     return df
+
 df = load_data()
 st.sidebar.title("📌 Navigation")
 page = st.sidebar.radio(
@@ -534,16 +549,9 @@ elif page == "⚙ Dynamic Clustering":
     st.subheader("💾 Save Model")
     save = st.button("Save KMeans Model")
     if save:
-        os.makedirs("models", exist_ok=True)
-        joblib.dump(
-            scaler,
-            "models/scaler.pkl"
-        )
-        joblib.dump(
-            kmeans,
-            "models/kmeans_model.pkl"
-        )
-        st.success("Model Saved Successfully!")
+        joblib.dump(scaler, MODEL_PATH.parent / "scaler.pkl")
+        joblib.dump(kmeans, MODEL_PATH)
+        st.success("Model saved successfully!")
 
 # ======================================================
 # CLUSTER VISUALIZATION
@@ -558,17 +566,11 @@ elif page == "📈 Cluster Visualization":
     # -------------------------------------
     # Check saved model
     # -------------------------------------
-    if not os.path.exists("models/kmeans_model.pkl"):
-        st.warning(
-            "Please go to Dynamic Clustering and save the model first."
-        )
+    if not MODEL_PATH.exists() or not SCALER_PATH.exists():
+        st.warning("Saved model files were not found in the Models folder.")
         st.stop()
-    # -------------------------------------
-    # Load Model
-    # -------------------------------------
-    scaler = joblib.load("models/scaler.pkl")
-    kmeans = joblib.load("models/kmeans_model.pkl")
-    # -------------------------------------
+    scaler = joblib.load(SCALER_PATH)
+    kmeans = joblib.load(MODEL_PATH)# -------------------------------------
     # Prepare Data
     # -------------------------------------
     numeric_df = df.select_dtypes(include=np.number)
@@ -692,14 +694,14 @@ elif page == "🧠 Predict Cluster":
     # --------------------------------------------------
     # Check Model
     # --------------------------------------------------
-    if not os.path.exists("models/kmeans_model.pkl"):
-        st.error("Please save the model first from Dynamic Clustering.")
+    if not MODEL_PATH.exists() or not SCALER_PATH.exists():
+        st.error("Saved model files were not found in the Models folder.")
         st.stop()
     # --------------------------------------------------
     # Load Model
     # --------------------------------------------------
-    scaler = joblib.load("models/scaler.pkl")
-    kmeans = joblib.load("models/kmeans_model.pkl")
+    scaler = joblib.load(SCALER_PATH)
+    kmeans = joblib.load(MODEL_PATH)
     numeric_columns = df.select_dtypes(include=np.number).columns.tolist()
     input_data = {}
     st.subheader("Customer Details")
